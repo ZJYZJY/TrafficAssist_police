@@ -10,11 +10,16 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.annotation.NonNull;
+import android.support.design.widget.BottomSheetDialog;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.DefaultItemAnimator;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -50,8 +55,10 @@ import com.amap.api.services.route.DriveRouteResult;
 import com.amap.api.services.route.RideRouteResult;
 import com.amap.api.services.route.RouteSearch;
 import com.amap.api.services.route.WalkRouteResult;
+import com.zjy.police.trafficassist.adapter.AccidentPicAdapter;
 import com.zjy.police.trafficassist.util.SensorEventHelper;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -59,7 +66,7 @@ public class MainActivity extends AppCompatActivity
         implements LocationSource, AMapLocationListener,
         AMap.OnMarkerClickListener, AMap.InfoWindowAdapter,
         GeocodeSearch.OnGeocodeSearchListener, AMap.OnMapClickListener,
-        RouteSearch.OnRouteSearchListener {
+        RouteSearch.OnRouteSearchListener, View.OnClickListener {
 
     private MapView mapView;
     private AMap aMap;
@@ -77,12 +84,15 @@ public class MainActivity extends AppCompatActivity
     private boolean mFirstFix = false;
     private SensorEventHelper mSensorHelper;
     private Circle mCircle;
+    private BottomSheetDialog dialog;
 
-    private static final int STROKE_COLOR = Color.argb(180, 3, 145, 255);
-    private static final int FILL_COLOR = Color.argb(10, 0, 0, 180);
-    private static final int CALL_PHONE = 1;
+    private static final int STROKE_COLOR   = Color.argb(180, 3, 145, 255);
+    private static final int FILL_COLOR     = Color.argb(10, 0, 0, 180);
+    private static final int CALL_PHONE     = 1;
 
     private Map<String, String> ReturnInfo = new HashMap<>();
+    private ArrayList<String> accidentTags = new ArrayList<>();
+    private ArrayList<Bitmap> bitmapArr = new ArrayList<>();
     private String addressName;
 
     @Override
@@ -99,7 +109,7 @@ public class MainActivity extends AppCompatActivity
 
         aMap.setOnMarkerClickListener(this);
         aMap.setOnMapClickListener(this);
-        aMap.setInfoWindowAdapter(this);
+//        aMap.setInfoWindowAdapter(this);
         geocoderSearch = new GeocodeSearch(this);
         geocoderSearch.setOnGeocodeSearchListener(this);
 
@@ -169,8 +179,78 @@ public class MainActivity extends AppCompatActivity
     public boolean onMarkerClick(Marker marker) {
 //        aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(marker.getPosition(), 15));
         currentMarker = marker;
+        if(marker != mLocMarker)
+            showBSDialog();
         changeCamera(CameraUpdateFactory.newCameraPosition(new CameraPosition(marker.getPosition(), 15, 0, 0)), null);
         return false;
+    }
+
+    private void showBSDialog() {
+        dialog = new BottomSheetDialog(this);
+//        Fresco.initialize(this);
+        final View view = LayoutInflater.from(MainActivity.this).inflate(R.layout.bottomsheet_dialog_layout, null);
+        view.findViewById(R.id.btn_carowner_info).setOnClickListener(this);
+        view.findViewById(R.id.btn_carowner_call).setOnClickListener(this);
+        view.findViewById(R.id.fab_startnavi).setOnClickListener(this);
+        // 获取事故标签
+        new AsyncTask<Void, Void, ArrayList<String>>() {
+            @Override
+            protected ArrayList<String> doInBackground(Void... params) {
+                return WebService.getAccidentTags(ReturnInfo.get("username"));
+            }
+
+            @Override
+            protected void onPostExecute(final ArrayList<String> accTags) {
+                super.onPostExecute(accTags);
+                accidentTags = accTags;
+                TextView tv = (TextView) view.findViewById(R.id.acc_tags);
+                if(accidentTags.size() != 0) {
+                    tv.setText(accidentTags.get(0));
+                    for(int i = 1; i < accidentTags.size(); i++) {
+                        tv.append("     " + accidentTags.get(i));
+                    }
+                }else {
+                    tv.setText("");
+                }
+            }
+        }.execute();
+        // 获取事故图片
+        final RecyclerView accPicList = (RecyclerView) view.findViewById(R.id.list_acc_pic);
+        final LinearLayoutManager LayoutManager = new LinearLayoutManager(this);
+        LayoutManager.setOrientation(LinearLayoutManager.HORIZONTAL);
+        accPicList.setLayoutManager(LayoutManager);             //设置LinearLayoutManager
+        accPicList.setItemAnimator(new DefaultItemAnimator());  //设置ItemAnimator
+        accPicList.setHasFixedSize(true);                       //设置固定大小
+        accPicList.addItemDecoration(new PicDecoration(this, PicDecoration.HORIZONTAL_LIST));
+        accPicList.addOnItemTouchListener(new RecyclerViewClickListener(this, accPicList,
+                new RecyclerViewClickListener.OnItemClickListener() {
+            @Override
+            public void onItemClick(View view, int position) {
+                Toast.makeText(MainActivity.this, "哈哈哈", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onItemLongClick(View view, int position) {
+
+            }
+        }));
+        new AsyncTask<Void, Void, ArrayList<Bitmap>>() {
+            @Override
+            protected ArrayList<Bitmap> doInBackground(Void... params) {
+                return WebService.getAccidentPics(ReturnInfo.get("username"));
+            }
+
+            @Override
+            protected void onPostExecute(ArrayList<Bitmap> bitmaps) {
+                super.onPostExecute(bitmaps);
+                bitmapArr = bitmaps;
+                AccidentPicAdapter accidentPicAdapter = new AccidentPicAdapter(MainActivity.this, bitmapArr);
+                accPicList.setAdapter(accidentPicAdapter);
+                accidentPicAdapter.notifyDataSetChanged();
+            }
+        }.execute();
+        dialog.setContentView(view);
+        dialog.show();
     }
 
     /**
@@ -221,7 +301,7 @@ public class MainActivity extends AppCompatActivity
                 public void onClick(View v) {
                     final AlertDialog.Builder comfirmDialog =
                             new AlertDialog.Builder(MainActivity.this);
-                    comfirmDialog.setTitle("确认").setMessage("你确定要打电话给报警人吗?");
+                    comfirmDialog.setTitle("提示").setMessage("你确定要打电话给报警人吗?");
                     comfirmDialog.setPositiveButton("确定",
                             new DialogInterface.OnClickListener() {
                                 @Override
@@ -258,18 +338,22 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
-    private void getInfo() {
+    private void getAccLoc() {
         new AsyncTask<Void, Void, Map<String, String>>() {
 
             @Override
             protected Map<String, String> doInBackground(Void... params) {
-                ReturnInfo = WebService.getAccidentInfo(UserStatus.user.getLocation().longitude,
-                        UserStatus.user.getLocation().latitude);
-                if(ReturnInfo != null)
-                    Log.d("location", ReturnInfo.get("latitude") + "   " + ReturnInfo.get("longitude"));
-                else
-                    Toast.makeText(MainActivity.this, "无法连接到服务器", Toast.LENGTH_SHORT).show();
+//                ReturnInfo = WebService.getAccidentLoc(UserStatus.user.getLocation().longitude,
+//                        UserStatus.user.getLocation().latitude);
+//                if(ReturnInfo != null)
+//                    Log.d("location", ReturnInfo.get("latitude") + "   " + ReturnInfo.get("longitude"));
+//                else
+//                    Toast.makeText(MainActivity.this, "无法连接到服务器", Toast.LENGTH_SHORT).show();
+                ReturnInfo.put("username", "15158266502");
+                ReturnInfo.put("longitude", "120.3452320");
+                ReturnInfo.put("latitude", "30.3258400");
                 return ReturnInfo;
+                //{"username":"15158266502","longitude":"120.3452320","latitude":"30.3258400"}
             }
 
             @Override
@@ -278,8 +362,8 @@ public class MainActivity extends AppCompatActivity
                 if(accidentPoint != null) {
                     Marker marker = aMap.addMarker(new MarkerOptions().
                             position(new LatLng(Double.parseDouble(accidentPoint.get("latitude")), Double.parseDouble(accidentPoint.get("longitude")))).
-                            title("事故点").
-                            snippet(accidentPoint.get("username")).
+                            //title("事故点").
+                            //snippet(accidentPoint.get("username")).
                             icon(BitmapDescriptorFactory.fromBitmap(
                                     BitmapFactory.decodeResource(getResources(),
                                             R.mipmap.location_marker))));
@@ -341,7 +425,7 @@ public class MainActivity extends AppCompatActivity
                 amapLocation.getAddress();//地址，如果option中设置isNeedAddress为false，则没有此结果，网络定位结果中会有地址信息，GPS定位不返回地址信息。
                 amapLocation.getLocationDetail();//获取定位信息描述
                 if(routeOverlay == null)
-                    getInfo();
+                    getAccLoc();
             } else {
                 String errText = "定位失败," + amapLocation.getErrorCode() + ": " + amapLocation.getErrorInfo();
                 Log.e("AmapErr", errText);
@@ -413,32 +497,35 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onResume() {
         super.onResume();
-        mapView.onResume();
         if (mSensorHelper != null) {
             mSensorHelper.registerSensorListener();
         }
+        mapView.onResume();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
+        if(currentMarker != null) {
+            currentMarker.hideInfoWindow();
+        }
         if (mSensorHelper != null) {
             mSensorHelper.unRegisterSensorListener();
             mSensorHelper.setCurrentMarker(null);
             mSensorHelper = null;
         }
-        mapView.onPause();
         mFirstFix = false;
+        mapView.onPause();
 //        deactivate();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        mapView.onDestroy();
         if(null != mlocationClient){
             mlocationClient.onDestroy();
         }
+        mapView.onDestroy();
     }
 
     // 以下是路线规划需实现的方法
@@ -457,4 +544,35 @@ public class MainActivity extends AppCompatActivity
     public void onWalkRouteSearched(WalkRouteResult walkRouteResult, int i) {}
     @Override
     public void onRideRouteSearched(RideRouteResult rideRouteResult, int i) {}
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.btn_carowner_info:
+                startActivity(new Intent(MainActivity.this, AccidentDetail.class));
+                break;
+            case R.id.btn_carowner_call:
+                final AlertDialog.Builder comfirmDialog =
+                        new AlertDialog.Builder(MainActivity.this);
+                comfirmDialog.setTitle("提示").setMessage("你确定要打电话给报警人吗?");
+                comfirmDialog.setPositiveButton("确定",
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                checkPermission();
+                                startActivity(new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + ReturnInfo.get("username"))));
+                            }
+                        }).setNegativeButton("取消", null);
+                comfirmDialog.show();// 显示
+                break;
+            case R.id.fab_startnavi:
+                dialog.dismiss();
+                Intent i = new Intent(MainActivity.this, NaviView.class);
+                i.putExtra("mlocation", location);
+                i.putExtra("ap_latitude", ReturnInfo.get("latitude"));
+                i.putExtra("ap_longitude", ReturnInfo.get("longitude"));
+                startActivity(i);
+                break;
+        }
+    }
 }

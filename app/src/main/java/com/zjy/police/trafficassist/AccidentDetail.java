@@ -7,14 +7,13 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Toast;
-
-public class AccidentDetail extends AppCompatActivity {
+@Deprecated
+public class AccidentDetail extends AppCompatActivity implements View.OnClickListener {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,19 +33,23 @@ public class AccidentDetail extends AppCompatActivity {
                 onBackPressed();
             }
         });
-        //使用CollapsingToolbarLayout必须把title设置到CollapsingToolbarLayout上，设置到Toolbar上则不会显示
+
         CollapsingToolbarLayout mCollapsingToolbarLayout = (CollapsingToolbarLayout) findViewById(R.id.collapsing_toolbar_layout);
         if (mCollapsingToolbarLayout != null) {
             mCollapsingToolbarLayout.setTitle("事故信息");
             mCollapsingToolbarLayout.setExpandedTitleColor(Color.WHITE);//设置收缩前Toolbar上字体的颜色
             mCollapsingToolbarLayout.setCollapsedTitleTextColor(Color.WHITE);//设置收缩后Toolbar上字体的颜色
         }
+
+        findViewById(R.id.car_owner_info).setOnClickListener(this);
+        findViewById(R.id.cv_one).setOnClickListener(this);
+        findViewById(R.id.cv_two).setOnClickListener(this);
+        findViewById(R.id.cv_three).setOnClickListener(this);
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.action_menu, menu);
+        getMenuInflater().inflate(R.menu.action_menu, menu);
         return super.onCreateOptionsMenu(menu);
     }
 
@@ -59,5 +62,19 @@ public class AccidentDetail extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.car_owner_info:
+                break;
+            case R.id.cv_one:
+                break;
+            case R.id.cv_two:
+                break;
+            case R.id.cv_three:
+                break;
+        }
     }
 }

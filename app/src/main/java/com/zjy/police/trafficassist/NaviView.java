@@ -244,11 +244,11 @@ public class NaviView extends Activity implements AMapNaviViewListener, AMapNavi
 
     }
 
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        mAMapNaviView.onSaveInstanceState(outState);
-    }
+//    @Override
+//    protected void onSaveInstanceState(Bundle outState) {
+//        super.onSaveInstanceState(outState);
+//        mAMapNaviView.onSaveInstanceState(outState);
+//    }
 
     @Override
     protected void onResume() {

@@ -3,4 +3,8 @@
 
     <string name="info_window_call">呼叫</string>
     <string name="info_window_navi">导航</string>
+
+    <string name="bottomsheet_dialog_title">事故信息</string>
+    <string name="bottomsheet_dialog_call">呼叫</string>
+    <string name="bottomsheet_dialog_navi">导航</string>
 </resources>
