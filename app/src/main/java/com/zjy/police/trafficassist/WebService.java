@@ -77,6 +77,26 @@ public class WebService {
         return accTags;
     }
 
+    public static ArrayList<String> getInfo(String username) {
+        path = "http://" + server_IP + "/trafficassist/policeApi/getAccInfo.php";
+        path = path + "?username=" + username;
+        String result = Connect();
+        JSONObject json = null;
+        ArrayList<String> picpath = new ArrayList<>();
+        try {
+            json = new JSONObject(result);
+            JSONArray filenames = json.getJSONArray("filenames");
+            for(int i = 0; i < filenames.length(); i++) {
+                String each_tag = (String) filenames.get(i);
+                picpath.add(each_tag);
+            }
+            return picpath;
+        } catch (JSONException e) {
+            e.printStackTrace();
+            Log.d("json", "path_not_ok");
+            return null;
+        }
+    }
 
     public static ArrayList<Bitmap> getAccidentPics(String username) {
         path = "http://" + server_IP + "/trafficassist/policeApi/getAccInfo.php";

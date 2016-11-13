@@ -55,6 +55,7 @@ import com.amap.api.services.route.DriveRouteResult;
 import com.amap.api.services.route.RideRouteResult;
 import com.amap.api.services.route.RouteSearch;
 import com.amap.api.services.route.WalkRouteResult;
+import com.facebook.drawee.backends.pipeline.Fresco;
 import com.zjy.police.trafficassist.adapter.AccidentPicAdapter;
 import com.zjy.police.trafficassist.util.SensorEventHelper;
 
@@ -93,11 +94,13 @@ public class MainActivity extends AppCompatActivity
     private Map<String, String> ReturnInfo = new HashMap<>();
     private ArrayList<String> accidentTags = new ArrayList<>();
     private ArrayList<Bitmap> bitmapArr = new ArrayList<>();
+    private ArrayList<Uri> bitmapUris = new ArrayList<>();
     private String addressName;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Fresco.initialize(this);
         setContentView(R.layout.activity_main);
 
         //地图初始化
@@ -187,7 +190,6 @@ public class MainActivity extends AppCompatActivity
 
     private void showBSDialog() {
         dialog = new BottomSheetDialog(this);
-//        Fresco.initialize(this);
         final View view = LayoutInflater.from(MainActivity.this).inflate(R.layout.bottomsheet_dialog_layout, null);
         view.findViewById(R.id.btn_carowner_info).setOnClickListener(this);
         view.findViewById(R.id.btn_carowner_call).setOnClickListener(this);
@@ -234,19 +236,35 @@ public class MainActivity extends AppCompatActivity
 
             }
         }));
-        new AsyncTask<Void, Void, ArrayList<Bitmap>>() {
+//        new AsyncTask<Void, Void, ArrayList<Bitmap>>() {
+//            @Override
+//            protected ArrayList<Bitmap> doInBackground(Void... params) {
+//                return WebService.getAccidentPics(ReturnInfo.get("username"));
+//            }
+//
+//            @Override
+//            protected void onPostExecute(ArrayList<Bitmap> bitmaps) {
+//                super.onPostExecute(bitmaps);
+//                bitmapArr = bitmaps;
+//                AccidentPicAdapter accidentPicAdapter = new AccidentPicAdapter(MainActivity.this, bitmapArr);
+//                accPicList.setAdapter(accidentPicAdapter);
+//                accidentPicAdapter.notifyDataSetChanged();
+//            }
+//        }.execute();
+        new AsyncTask<Void, Void, ArrayList<String>>() {
             @Override
-            protected ArrayList<Bitmap> doInBackground(Void... params) {
-                return WebService.getAccidentPics(ReturnInfo.get("username"));
+            protected ArrayList<String> doInBackground(Void... params) {
+                return WebService.getInfo(ReturnInfo.get("username"));
             }
 
             @Override
-            protected void onPostExecute(ArrayList<Bitmap> bitmaps) {
-                super.onPostExecute(bitmaps);
-                bitmapArr = bitmaps;
-                AccidentPicAdapter accidentPicAdapter = new AccidentPicAdapter(MainActivity.this, bitmapArr);
-                accPicList.setAdapter(accidentPicAdapter);
-                accidentPicAdapter.notifyDataSetChanged();
+            protected void onPostExecute(ArrayList<String> picpath) {
+                super.onPostExecute(picpath);
+                for(int i = 0; i < picpath.size(); i++) {
+                    bitmapUris.add(Uri.parse("http://192.168.31.100/TrafficAssist/AccidentImage/" + picpath.get(i)));
+                    AccidentPicAdapter accidentPicAdapter = new AccidentPicAdapter(MainActivity.this, bitmapUris);
+                    accPicList.setAdapter(accidentPicAdapter);
+                }
             }
         }.execute();
         dialog.setContentView(view);
