@@ -37,7 +37,7 @@ public class AccidentPicAdapter extends RecyclerView.Adapter<AccidentPicAdapter.
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        holder.imageView.setImageURI(accidentPics.get(position));
+        holder.simpleDraweeView.setImageURI(accidentPics.get(position));
     }
 
     @Override
@@ -52,11 +52,11 @@ public class AccidentPicAdapter extends RecyclerView.Adapter<AccidentPicAdapter.
 
     static class ViewHolder extends RecyclerView.ViewHolder {
 
-        SimpleDraweeView imageView;
+        SimpleDraweeView simpleDraweeView;
 
         ViewHolder(View itemView) {
             super(itemView);
-            imageView = (SimpleDraweeView) itemView.findViewById(R.id.acc_pic);
+            simpleDraweeView = (SimpleDraweeView) itemView.findViewById(R.id.acc_pic);
         }
     }
 }

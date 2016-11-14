@@ -10,7 +10,9 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.annotation.NonNull;
+import android.support.design.widget.BottomSheetBehavior;
 import android.support.design.widget.BottomSheetDialog;
+import android.support.design.widget.CoordinatorLayout;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -19,6 +21,7 @@ import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
@@ -190,7 +193,7 @@ public class MainActivity extends AppCompatActivity
 
     private void showBSDialog() {
         dialog = new BottomSheetDialog(this);
-        final View view = LayoutInflater.from(MainActivity.this).inflate(R.layout.bottomsheet_dialog_layout, null);
+        final View view = LayoutInflater.from(this).inflate(R.layout.bottomsheet_dialog_layout, null);
         view.findViewById(R.id.btn_carowner_info).setOnClickListener(this);
         view.findViewById(R.id.btn_carowner_call).setOnClickListener(this);
         view.findViewById(R.id.fab_startnavi).setOnClickListener(this);
@@ -219,11 +222,16 @@ public class MainActivity extends AppCompatActivity
         // 获取事故图片
         final RecyclerView accPicList = (RecyclerView) view.findViewById(R.id.list_acc_pic);
         final LinearLayoutManager LayoutManager = new LinearLayoutManager(this);
+        //设置RecyclerView的布局方向
         LayoutManager.setOrientation(LinearLayoutManager.HORIZONTAL);
-        accPicList.setLayoutManager(LayoutManager);             //设置LinearLayoutManager
-        accPicList.setItemAnimator(new DefaultItemAnimator());  //设置ItemAnimator
-        accPicList.setHasFixedSize(true);                       //设置固定大小
-        accPicList.addItemDecoration(new PicDecoration(this, PicDecoration.HORIZONTAL_LIST));
+        //设置LinearLayoutManager
+        accPicList.setLayoutManager(LayoutManager);
+        //设置ItemAnimator
+//        accPicList.setItemAnimator(new DefaultItemAnimator());
+        //设置固定大小
+//        accPicList.setHasFixedSize(true);
+        //设置item之间的分隔线
+//        accPicList.addItemDecoration(new PicDecoration(this, PicDecoration.HORIZONTAL_LIST));
         accPicList.addOnItemTouchListener(new RecyclerViewClickListener(this, accPicList,
                 new RecyclerViewClickListener.OnItemClickListener() {
             @Override
@@ -258,16 +266,23 @@ public class MainActivity extends AppCompatActivity
             }
 
             @Override
-            protected void onPostExecute(ArrayList<String> picpath) {
-                super.onPostExecute(picpath);
-                for(int i = 0; i < picpath.size(); i++) {
-                    bitmapUris.add(Uri.parse("http://192.168.31.100/TrafficAssist/AccidentImage/" + picpath.get(i)));
-                    AccidentPicAdapter accidentPicAdapter = new AccidentPicAdapter(MainActivity.this, bitmapUris);
+            protected void onPostExecute(ArrayList<String> picname) {
+                super.onPostExecute(picname);
+                for(int i = 0; i < picname.size(); i++) {
+                    bitmapUris.add(Uri.parse("http://192.168.31.100/TrafficAssist/AccidentImage/" + picname.get(i)));
+                    AccidentPicAdapter accidentPicAdapter = new AccidentPicAdapter(view.getContext(), bitmapUris);
                     accPicList.setAdapter(accidentPicAdapter);
                 }
             }
         }.execute();
         dialog.setContentView(view);
+        View parent = (View) view.getParent();
+        BottomSheetBehavior behavior = BottomSheetBehavior.from(parent);
+        view.measure(0, 0);
+        behavior.setPeekHeight(512);
+        CoordinatorLayout.LayoutParams params = (CoordinatorLayout.LayoutParams) parent.getLayoutParams();
+        params.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
+        parent.setLayoutParams(params);
         dialog.show();
     }
 
@@ -407,9 +422,9 @@ public class MainActivity extends AppCompatActivity
         mCircle = aMap.addCircle(options);
     }
 
-    private void addMarker(LatLng latlng) {
+    private Marker addMarker(LatLng latlng) {
         if (mLocMarker != null) {
-            return;
+            return null;
         }
         Bitmap bMap = BitmapFactory.decodeResource(this.getResources(),
                 R.mipmap.navi_map_gps_locked);
@@ -421,6 +436,7 @@ public class MainActivity extends AppCompatActivity
         options.anchor(0.5f, 0.5f);
         options.position(latlng);
         mLocMarker = aMap.addMarker(options);
+        return mLocMarker;
     }
 
     @Override
@@ -432,14 +448,15 @@ public class MainActivity extends AppCompatActivity
                 if (!mFirstFix) {
                     mFirstFix = true;
                     addCircle(location, amapLocation.getAccuracy());//添加定位精度圆
-                    addMarker(location);//添加定位图标
-                    mSensorHelper.setCurrentMarker(mLocMarker);//定位图标旋转
+                    addMarker(location).setFlat(true);//添加定位图标
                     aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 15));
                 } else {
                     mCircle.setCenter(location);
                     mCircle.setRadius(amapLocation.getAccuracy());
                     mLocMarker.setPosition(location);
                 }
+                if(mSensorHelper != null)
+                    mSensorHelper.setCurrentMarker(mLocMarker);//定位图标旋转
                 amapLocation.getAddress();//地址，如果option中设置isNeedAddress为false，则没有此结果，网络定位结果中会有地址信息，GPS定位不返回地址信息。
                 amapLocation.getLocationDetail();//获取定位信息描述
                 if(routeOverlay == null)
@@ -515,10 +532,11 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onResume() {
         super.onResume();
-        if (mSensorHelper != null) {
-            mSensorHelper.registerSensorListener();
-        }
         mapView.onResume();
+        if (mSensorHelper == null) {
+            mSensorHelper = new SensorEventHelper(this);
+        }
+        mSensorHelper.registerSensorListener();
     }
 
     @Override
