@@ -3,9 +3,8 @@ package com.zjy.police.trafficassist;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.util.Log;
-import android.widget.Toast;
 
-import com.amap.api.maps.model.LatLng;
+import com.zjy.police.trafficassist.model.User;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -34,7 +33,25 @@ public class WebService {
      * 对应servlet的URL
      */
     private static String path;
-    private static String server_IP = "192.168.31.100";
+    private static String server_IP = "120.27.130.203:8001";
+
+    /**
+     * 与HTTP服务器通信，进行登录
+     */
+    public static String Login(User user) {
+        path = "http://" + server_IP + "/trafficassist/policeApi/login.php";
+        path = path + "?username=" + user.getUsername() + "&password=" + user.getPassword();
+        return Connect();
+    }
+
+    /**
+     * 与HTTP服务器通信，进行注册
+     */
+    public static String Signup(User user) {
+        path = "http://" + server_IP + "/trafficassist/policeApi/register.php";
+        path = path + "?username=" + user.getUsername() + "&password=" + user.getPassword();
+        return Connect();
+    }
 
     public static Map<String, String> getAccidentLoc(double x, double y) {
         path = "http://" + server_IP + "/trafficassist/policeApi/getAccLoc.php";
@@ -117,7 +134,7 @@ public class WebService {
             Log.d("json", "path_not_ok");
         }
         for(int i = 0; i < picpath.size(); i++)
-            bitmaps.add(getLocalOrNetBitmap("http://192.168.31.100/TrafficAssist/AccidentImage/" + picpath.get(i)));
+            bitmaps.add(getLocalOrNetBitmap("http://" + server_IP + "/trafficassist/AccidentImage/" + picpath.get(i)));
         return bitmaps;
     }
 
@@ -174,7 +191,7 @@ public class WebService {
                 br.close();
                 isr.close();
                 is.close();
-                Log.d("返回数据：", info);
+                Log.d("return_data：", info);
                 return info;
             }
         } catch (Exception e) {
