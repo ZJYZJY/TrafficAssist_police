@@ -56,7 +56,7 @@ public class ConnectIMServerHelper {
                  */
                 @Override
                 public void onTokenIncorrect() {
-                    LogUtil.d("IMServer", "--onTokenIncorrect--");
+                    LogUtil.e("IMServer", "--onTokenIncorrect--");
 
                     Map<String, String> user = new HashMap<>();
                     user.put("username", USER.getUsername());
@@ -91,7 +91,7 @@ public class ConnectIMServerHelper {
                  */
                 @Override
                 public void onSuccess(String userid) {
-                    LogUtil.d("IMServer", "--onSuccess-- " + userid);
+                    LogUtil.i("IMServer", "--onSuccess-- " + userid);
                     Toast.makeText(context, userid + " 登陆成功", Toast.LENGTH_SHORT).show();
                 }
 
@@ -101,7 +101,7 @@ public class ConnectIMServerHelper {
                  */
                 @Override
                 public void onError(RongIMClient.ErrorCode errorCode) {
-                    LogUtil.d("IMServer", "--onError-- " + errorCode);
+                    LogUtil.e("IMServer", "--onError-- " + errorCode);
                 }
             });
         }

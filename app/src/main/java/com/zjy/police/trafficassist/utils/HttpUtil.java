@@ -1,5 +1,6 @@
 package com.zjy.police.trafficassist.utils;
 
+import com.amap.api.maps.model.LatLng;
 import com.zjy.police.trafficassist.model.User;
 
 import org.json.JSONException;
@@ -20,10 +21,7 @@ import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 import retrofit2.converter.gson.GsonConverterFactory;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
-import retrofit2.http.Multipart;
 import retrofit2.http.POST;
-import retrofit2.http.Part;
-import retrofit2.http.Query;
 import retrofit2.http.QueryMap;
 
 /**
@@ -130,6 +128,13 @@ public class HttpUtil {
         @GET(APIPath.GET_TOKEN)
         Call<ResponseBody> getToken(@QueryMap Map<String, String> user);
 
+        /**
+         * 获取事故发生的位置
+         * @param location 上传交警的位置信息
+         */
+        @GET(APIPath.GET_ACCIDENT_LOC)
+        Call<ResponseBody> getAccidentLoc(@Body LatLng location);
+
     }
 
     private class APIPath{
@@ -139,5 +144,7 @@ public class HttpUtil {
         private static final String SIGN_UP = "trafficassist/police/signup.php";
 
         private static final String GET_TOKEN = "trafficassist/IMServerApi/getToken.php";
+
+        private static final String GET_ACCIDENT_LOC = "trafficassist/police/getAccLoc.php";
     }
 }

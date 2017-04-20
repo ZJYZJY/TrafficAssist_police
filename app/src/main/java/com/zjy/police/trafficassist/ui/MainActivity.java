@@ -70,17 +70,22 @@ import com.amap.api.services.route.WalkRouteResult;
 import com.zjy.police.trafficassist.AccidentDetail;
 import com.zjy.police.trafficassist.R;
 import com.zjy.police.trafficassist.helper.PermissionHelper;
+import com.zjy.police.trafficassist.listener.LoginStatusChangedListener;
 import com.zjy.police.trafficassist.listener.RecyclerViewClickListener;
 import com.zjy.police.trafficassist.UserStatus;
 import com.zjy.police.trafficassist.WebService;
 import com.zjy.police.trafficassist.adapter.AccidentPicAdapter;
 import com.zjy.police.trafficassist.helper.SensorEventHelper;
 import com.zjy.police.trafficassist.overlay.DrivingRouteOverlay;
-import com.zjy.police.trafficassist.utils.AutoLogin;
+import com.zjy.police.trafficassist.helper.LoginHelper;
+import com.zjy.police.trafficassist.utils.LogUtil;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+
+import static com.zjy.police.trafficassist.UserStatus.LOGIN_STATUS;
+import static com.zjy.police.trafficassist.UserStatus.USER;
 
 public class MainActivity extends AppCompatActivity
         implements LocationSource, AMapLocationListener,
@@ -101,6 +106,7 @@ public class MainActivity extends AppCompatActivity
     private DrivingRouteOverlay routeOverlay;
     private Marker currentMarker;
     private Marker mLocMarker;
+    private Marker accidenMmarker;
     private NearbySearch uploadLocInfo;
 
     private boolean mFirstFix = false;
@@ -180,7 +186,16 @@ public class MainActivity extends AppCompatActivity
         mSensorHelper = new SensorEventHelper(this);
         mSensorHelper.registerSensorListener();
         // 自动登陆
-        AutoLogin.getInstance().login(getApplicationContext());
+        LoginHelper.getInstance().login(getApplicationContext(), new LoginStatusChangedListener() {
+            @Override
+            public void onLoginStatusChanged(boolean loginStatus) {
+                logined.setVisibility(loginStatus ? View.VISIBLE : View.GONE);
+                unlogin.setVisibility(loginStatus ? View.GONE : View.VISIBLE);
+                if(USER != null && loginStatus){
+                    display_user_name.setText(USER.getUsername());
+                }
+            }
+        });
     }
 
     //定位功能
@@ -303,21 +318,15 @@ public class MainActivity extends AppCompatActivity
                     return ReturnInfo;
                 }
                 return null;
-//                ReturnInfo.put("username", "15158266502");
-//                ReturnInfo.put("longitude", "120.3452320");
-//                ReturnInfo.put("latitude", "30.3258400");
-                //{"username":"15158266502","longitude":"120.3452320","latitude":"30.3258400"}
             }
 
             @Override
             protected void onPostExecute(final Map<String, String> accidentPoint) {
                 super.onPostExecute(accidentPoint);
                 if (accidentPoint != null) {
-                    Marker marker = aMap.addMarker(new MarkerOptions().
-                            position(new LatLng(Double.parseDouble(accidentPoint.get("latitude")), Double.parseDouble(accidentPoint.get("longitude")))).
-                            //title("事故点").
-                            //snippet(accidentPoint.get("username")).
-                                    icon(BitmapDescriptorFactory.fromBitmap(
+                    accidenMmarker = aMap.addMarker(new MarkerOptions()
+                            .position(new LatLng(Double.parseDouble(accidentPoint.get("latitude")), Double.parseDouble(accidentPoint.get("longitude"))))
+                            .icon(BitmapDescriptorFactory.fromBitmap(
                                     BitmapFactory.decodeResource(getResources(),
                                             R.mipmap.location_marker))));
                 }
@@ -385,7 +394,7 @@ public class MainActivity extends AppCompatActivity
                     getAccLoc();
             } else {
                 String errText = "定位失败," + amapLocation.getErrorCode() + ": " + amapLocation.getErrorInfo();
-                Log.e("AmapErr", errText);
+                LogUtil.e("AmapErr", errText);
                 Toast.makeText(getApplicationContext(), errText, Toast.LENGTH_LONG).show();
             }
         }
@@ -421,7 +430,7 @@ public class MainActivity extends AppCompatActivity
             if (regeocodeResult != null && regeocodeResult.getRegeocodeAddress() != null
                     && regeocodeResult.getRegeocodeAddress().getFormatAddress() != null) {
                 addressName = regeocodeResult.getRegeocodeAddress().getFormatAddress() + "附近";
-                Log.d("info_window", "i am here  " + addressName);
+                LogUtil.d("info_window", "i am here  " + addressName);
             } else {
 
             }
@@ -458,8 +467,11 @@ public class MainActivity extends AppCompatActivity
         if (mSensorHelper == null) {
             mSensorHelper = new SensorEventHelper(this);
         }
-        if (UserStatus.LOGIN_STATUS) {
-            Log.e("upload", "start upload location");
+//        logined.setVisibility(LOGIN_STATUS ? View.VISIBLE : View.GONE);
+//        unlogin.setVisibility(LOGIN_STATUS ? View.GONE : View.VISIBLE);
+        if (LOGIN_STATUS) {
+//            display_user_name.setText(USER.getUsername());
+            LogUtil.d("upload", "start upload location");
             uploadLocInfo.startUploadNearbyInfoAuto(new UploadInfoCallback() {
                 @Override
                 public UploadInfo OnUploadInfoCallback() {
@@ -528,7 +540,7 @@ public class MainActivity extends AppCompatActivity
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.login_map_aty:
-                startActivity(new Intent(MainActivity.this, LoginActivity.class));
+                startLoginActivity();
                 break;
             case R.id.btn_carowner_info:
                 startActivity(new Intent(MainActivity.this, AccidentDetail.class));
@@ -573,17 +585,41 @@ public class MainActivity extends AppCompatActivity
                 break;
             case R.id.nav_slideshow:
                 break;
-            case R.id.nav_manage:
-                break;
             case R.id.nav_setting:
                 break;
             case R.id.nav_about:
+                break;
+            case R.id.nav_exit:
+                LoginHelper.getInstance().logout(getApplicationContext(), new LoginStatusChangedListener() {
+                    @Override
+                    public void onLoginStatusChanged(boolean loginStatus) {
+                        logined.setVisibility(loginStatus ? View.VISIBLE : View.GONE);
+                        unlogin.setVisibility(loginStatus ? View.GONE : View.VISIBLE);
+                        if(!loginStatus) {
+                            Toast.makeText(MainActivity.this, "注销成功", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
                 break;
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
+    }
+
+    public void startLoginActivity(){
+        LoginActivity.setOnLoginStatusChanged(new LoginStatusChangedListener() {
+            @Override
+            public void onLoginStatusChanged(boolean loginStatus) {
+                logined.setVisibility(loginStatus ? View.VISIBLE : View.GONE);
+                unlogin.setVisibility(loginStatus ? View.GONE : View.VISIBLE);
+                if(USER != null && loginStatus){
+                    display_user_name.setText(USER.getUsername());
+                }
+            }
+        });
+        startActivity(new Intent(MainActivity.this, LoginActivity.class));
     }
 
     @Override

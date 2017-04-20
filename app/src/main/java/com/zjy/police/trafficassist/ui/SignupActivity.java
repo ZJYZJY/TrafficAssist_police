@@ -19,6 +19,16 @@ import com.zjy.police.trafficassist.R;
 import com.zjy.police.trafficassist.model.User;
 import com.zjy.police.trafficassist.UserStatus;
 import com.zjy.police.trafficassist.WebService;
+import com.zjy.police.trafficassist.utils.HttpUtil;
+
+import java.io.IOException;
+
+import okhttp3.ResponseBody;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
+import static com.zjy.police.trafficassist.utils.HttpUtil.SUCCESS;
 
 public class SignupActivity extends AppCompatActivity {
 
@@ -33,7 +43,7 @@ public class SignupActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_signup);
-//        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         container = (CoordinatorLayout) findViewById(R.id.reg_container);
         new_username = (EditText) findViewById(R.id.username);
@@ -95,38 +105,33 @@ public class SignupActivity extends AppCompatActivity {
             mPDialog.setMessage(getResources().getString(R.string.now_user_register));
             mPDialog.setCancelable(true);
             mPDialog.show();
-            new AsyncTask<Void, Void, Boolean>(){
 
-                String state;
-                String ReturnCode;
-
+            HttpUtil.create().signUp(user).enqueue(new Callback<ResponseBody>() {
                 @Override
-                protected Boolean doInBackground(Void... params) {
+                public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                    mPDialog.dismiss();
                     try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
+                        String res = response.body().string();
+                        if(HttpUtil.stateCode(res) == SUCCESS){
+                            Toast.makeText(SignupActivity.this, "注册成功", Toast.LENGTH_SHORT).show();
+                            Intent intent = new Intent();
+                            intent.putExtra("username", new_username.getText().toString());
+                            intent.putExtra("password", new_passname.getText().toString());
+                            setResult(0, intent);
+                            finish();
+                        }else {
+                            Toast.makeText(SignupActivity.this, "注册失败", Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (IOException e) {
                         e.printStackTrace();
                     }
-                    ReturnCode = WebService.Signup(user);
-
-                    return Boolean.parseBoolean(ReturnCode);
                 }
 
                 @Override
-                protected void onPostExecute(final Boolean success) {
-                    super.onPostExecute(success);
-                    mPDialog.dismiss();
-                    if (success) {
-                        Toast.makeText(SignupActivity.this, "注册成功", Toast.LENGTH_SHORT).show();
-                        UserStatus.LOGIN_STATUS = true;
-                        UserStatus.USER = user;
-                        finish();
-                        startActivity(new Intent(SignupActivity.this, MainActivity.class));
-                    } else {
-                        Toast.makeText(SignupActivity.this, "注册失败," + state, Toast.LENGTH_SHORT).show();
-                    }
+                public void onFailure(Call<ResponseBody> call, Throwable t) {
+                    Toast.makeText(SignupActivity.this, "连接失败", Toast.LENGTH_SHORT).show();
                 }
-            }.execute();
+            });
         }
     }
 

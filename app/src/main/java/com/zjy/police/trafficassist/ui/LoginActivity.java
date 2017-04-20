@@ -2,7 +2,6 @@ package com.zjy.police.trafficassist.ui;
 
 import android.app.ProgressDialog;
 import android.content.Intent;
-import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -11,31 +10,31 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.zjy.police.trafficassist.R;
+import com.zjy.police.trafficassist.listener.LoginStatusChangedListener;
 import com.zjy.police.trafficassist.model.User;
-import com.zjy.police.trafficassist.UserStatus;
-import com.zjy.police.trafficassist.WebService;
 import com.zjy.police.trafficassist.utils.LoginCheck;
 
 public class LoginActivity extends AppCompatActivity {
 
     private User user;
     private EditText new_username;
-    private EditText new_passname;
+    private EditText new_password;
     private Button loginBtn;
     private Button signUpBtn;
     private TextView forget_password;
+
+    private static LoginStatusChangedListener loginStatusChangedListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
-//        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         new_username = (EditText) findViewById(R.id.username);
-        new_passname = (EditText) findViewById(R.id.password);
+        new_password = (EditText) findViewById(R.id.password);
         forget_password = (TextView) findViewById(R.id.forget_password);
 
         loginBtn = (Button) findViewById(R.id.user_sign_in);
@@ -50,7 +49,7 @@ public class LoginActivity extends AppCompatActivity {
         signUpBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                startActivity(new Intent(LoginActivity.this, SignupActivity.class));
+                startActivityForResult(new Intent(LoginActivity.this, SignupActivity.class), 0);
             }
         });
         forget_password.setOnClickListener(new View.OnClickListener() {
@@ -65,11 +64,11 @@ public class LoginActivity extends AppCompatActivity {
 
         // Reset errors.
         new_username.setError(null);
-        new_passname.setError(null);
+        new_password.setError(null);
         /**
          * 初始化User对象
          */
-        user = new User(new_username.getText().toString(), new_passname.getText().toString());
+        user = new User(new_username.getText().toString(), new_password.getText().toString());
         //MapActivity.USER = USER;
 
         boolean cancel = false;
@@ -77,8 +76,8 @@ public class LoginActivity extends AppCompatActivity {
 
         // Check for a valid password, if the USER entered one.
         if (!TextUtils.isEmpty(user.getPassword()) && !isPasswordValid(user.getPassword())) {
-            new_passname.setError(getString(R.string.error_invalid_password));
-            focusView = new_passname;
+            new_password.setError(getString(R.string.error_invalid_password));
+            focusView = new_password;
             cancel = true;
         }
 
@@ -106,8 +105,26 @@ public class LoginActivity extends AppCompatActivity {
             mPDialog.show();
 
             LoginCheck loginCheck = new LoginCheck(this, user, mPDialog);
+            loginCheck.setOnLoginStatusChanged(loginStatusChangedListener);
             loginCheck.login();
         }
+    }
+
+    public static void setOnLoginStatusChanged(LoginStatusChangedListener listener) {
+        loginStatusChangedListener = listener;
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (resultCode == 0) {
+            if (requestCode == 0) {
+                if (data != null) {
+                    new_username.setText(data.getStringExtra("username"));
+                    new_password.setText(data.getStringExtra("password"));
+                }
+            }
+        }
+        super.onActivityResult(requestCode, resultCode, data);
     }
 
     private boolean isUsernameValid(String username) {

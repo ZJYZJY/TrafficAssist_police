@@ -2,6 +2,7 @@ package com.zjy.police.trafficassist;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.widget.Toast;
 
 import com.zjy.police.trafficassist.model.User;
 import com.zjy.police.trafficassist.utils.LogUtil;
@@ -24,12 +25,4 @@ public class UserStatus {
     public static SharedPreferences SP;
 
     public static SharedPreferences.Editor EDITOR;
-
-    public static void ClearUserLoginStatus(Context context){
-        LOGIN_STATUS = false;
-        USER = null;
-        SP = context.getSharedPreferences("USER_INFO", MODE_PRIVATE);
-        SP.edit().clear().apply();
-        LogUtil.e("unlogin success");
-    }
 }

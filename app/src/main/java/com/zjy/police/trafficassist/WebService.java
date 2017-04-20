@@ -35,24 +35,6 @@ public class WebService {
     private static String path;
     private static String server_IP = "120.27.130.203:8001";
 
-    /**
-     * 与HTTP服务器通信，进行登录
-     */
-    public static String Login(User user) {
-        path = "http://" + server_IP + "/trafficassist/policeApi/login.php";
-        path = path + "?username=" + user.getUsername() + "&password=" + user.getPassword();
-        return Connect();
-    }
-
-    /**
-     * 与HTTP服务器通信，进行注册
-     */
-    public static String Signup(User user) {
-        path = "http://" + server_IP + "/trafficassist/policeApi/register.php";
-        path = path + "?username=" + user.getUsername() + "&password=" + user.getPassword();
-        return Connect();
-    }
-
     public static Map<String, String> getAccidentLoc(double x, double y) {
         path = "http://" + server_IP + "/trafficassist/policeApi/getAccLoc.php";
         path = path + "?longitude=" + x + "&latitude=" + y;
@@ -111,54 +93,6 @@ public class WebService {
         } catch (JSONException e) {
             e.printStackTrace();
             Log.d("json", "path_not_ok");
-            return null;
-        }
-    }
-
-    public static ArrayList<Bitmap> getAccidentPics(String username) {
-        path = "http://" + server_IP + "/trafficassist/policeApi/getAccInfo.php";
-        path = path + "?username=" + username;
-        String result = Connect();
-        JSONObject json = null;
-        ArrayList<Bitmap> bitmaps = new ArrayList<>();
-        ArrayList<String> picpath = new ArrayList<>();
-        try {
-            json = new JSONObject(result);
-            JSONArray filenames = json.getJSONArray("filenames");
-            for(int i = 0; i < filenames.length(); i++) {
-                String each_tag = (String) filenames.get(i);
-                picpath.add(each_tag);
-            }
-        } catch (JSONException e) {
-            e.printStackTrace();
-            Log.d("json", "path_not_ok");
-        }
-        for(int i = 0; i < picpath.size(); i++)
-            bitmaps.add(getLocalOrNetBitmap("http://" + server_IP + "/trafficassist/AccidentImage/" + picpath.get(i)));
-        return bitmaps;
-    }
-
-    private static Bitmap getLocalOrNetBitmap(String url) {
-        int IO_BUFFER_SIZE = 2*1024;
-        Bitmap bitmap = null;
-        InputStream in = null;
-        BufferedOutputStream out = null;
-        try
-        {
-            in = new BufferedInputStream(new URL(url).openStream(), IO_BUFFER_SIZE);
-            final ByteArrayOutputStream dataStream = new ByteArrayOutputStream();
-            out = new BufferedOutputStream(dataStream, IO_BUFFER_SIZE);
-            byte[] b = new byte[IO_BUFFER_SIZE];
-            int read;
-            while ((read = in.read(b)) != -1)
-                out.write(b, 0, read);
-            out.flush();
-            byte[] data = dataStream.toByteArray();
-            bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
-            data = null;
-            return bitmap;
-        }catch (IOException e){
-            e.printStackTrace();
             return null;
         }
     }

@@ -1,26 +1,29 @@
-package com.zjy.police.trafficassist.utils;
+package com.zjy.police.trafficassist.helper;
 
 import android.content.Context;
 
 import com.zjy.police.trafficassist.UserStatus;
+import com.zjy.police.trafficassist.listener.LoginStatusChangedListener;
 import com.zjy.police.trafficassist.model.User;
+import com.zjy.police.trafficassist.utils.LogUtil;
+import com.zjy.police.trafficassist.utils.LoginCheck;
 
 import static android.content.Context.MODE_PRIVATE;
 import static com.zjy.police.trafficassist.UserStatus.EDITOR;
 import static com.zjy.police.trafficassist.UserStatus.SP;
 
-public class AutoLogin {
+public class LoginHelper {
 
-    private static AutoLogin instance;
+    private static LoginHelper instance;
 
-    public static AutoLogin getInstance(){
+    public static LoginHelper getInstance(){
         if(instance == null){
-            return new AutoLogin();
+            return new LoginHelper();
         }
         return instance;
     }
 
-    public void login(Context context){
+    public void login(Context context, LoginStatusChangedListener listener){
         SP = context.getSharedPreferences("USER_INFO", MODE_PRIVATE);
         // 自动登录
         if(SP.getString("USER_NAME", null) != null
@@ -28,11 +31,17 @@ public class AutoLogin {
             String username = SP.getString("USER_NAME", "");
             String password = SP.getString("PASSWORD", "");
             User user = new User(username, password);
-            LogUtil.i("SP  " + user.getUsername() + "  " + user.getPassword());
+            LogUtil.d("SP  " + user.getUsername() + "  " + user.getPassword());
 
-            LoginCheck loginCheck = new LoginCheck(context, user);
+            LoginCheck loginCheck = new LoginCheck(context, listener, user);
             loginCheck.login();
         }
+    }
+
+    public void logout(Context context, LoginStatusChangedListener listener){
+        LoginCheck loginCheck = new LoginCheck(context, listener);
+        loginCheck.setOnLoginStatusChanged(listener);
+        loginCheck.logout();
     }
 
     public void saveUserInfo(Context context){
